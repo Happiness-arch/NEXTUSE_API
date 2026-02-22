@@ -3,7 +3,10 @@ const Inventory = require("../models/inventory");
 // ADD WASTE TO INVENTORY
 exports.addWaste = async (req, res) => {
   try {
-    const { wasteType, weight } = req.body;
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ message: "Please provide at least one waste item" });
 
     let inventory = await Inventory.findOne({ user: req.user.id });
 
@@ -15,8 +18,10 @@ exports.addWaste = async (req, res) => {
       });
     }
 
-    inventory.items.push({ wasteType, weight });
-    inventory.totalWeight += weight;
+    for (const item of items) {
+      inventory.items.push(item);
+      inventory.totalWeight += item.weight || 0;
+    }
 
     await inventory.save();
 
@@ -26,6 +31,7 @@ exports.addWaste = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // GET MY INVENTORY
 exports.getMyInventory = async (req, res) => {

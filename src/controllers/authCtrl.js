@@ -1,12 +1,11 @@
 const User = require("../models/user");
-// const bcrypt = require("bcryptjs"); //REMOVED BECAUSE PRE("SAVE") IN USER MODEL HASHES PASSWORD AUTOMATICALL
-const jwt = require("jsonwebtoken");
-
+const bcrypt = require("bcryptjs"); 
+const jwt = require("jsonwebtoken")
 
 //REGISTER CONTROLLER
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { name, email, password, role, phone, address } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser)
@@ -20,6 +19,7 @@ exports.register = async (req, res) => {
       password, //i removed the hashing here because my userSchema model hook is already hashing the password before saving
       role,
       phone,
+      address,
     });
 
     res.status(201).json({
@@ -61,3 +61,22 @@ exports.login = async (req, res) => {
   }
 };
 
+
+
+// USERS CAN UPDATE THEIR PROFILE (MAKE CHANGES TO USERNAME, PHONE AND ADDRESS)
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone, address } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, phone, address },
+      { new: true }
+    ).select("-password");
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};

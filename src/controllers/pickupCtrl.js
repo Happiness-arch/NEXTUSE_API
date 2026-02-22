@@ -161,3 +161,48 @@ exports.approvePickup = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+
+// HOUSEHOLD VIEWS THEIR PICKUP HISTORY
+exports.getMyPickups = async (req, res) => {
+  try {
+    const pickups = await Pickup.find({ household: req.user.id })
+      .populate("driver", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(pickups);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// DRIVER VIEWS ASSIGNED PICKUPS
+exports.getAssignedPickups = async (req, res) => {
+  try {
+    const pickups = await Pickup.find({ driver: req.user.id })
+      .populate("household", "name email phone address")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(pickups);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADMIN VIEWS ALL PICKUPS
+exports.getAllPickups = async (req, res) => {
+  try {
+    const pickups = await Pickup.find()
+      .populate("household", "name email phone address")
+      .populate("driver", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(pickups);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};

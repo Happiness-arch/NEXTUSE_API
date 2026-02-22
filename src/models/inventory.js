@@ -1,8 +1,15 @@
 const mongoose = require("mongoose");
 
 const itemSchema = new mongoose.Schema({
-  wasteType: String,
-  weight: Number,
+  wasteType: {
+  type: String,
+    enum: ["plastic", "glass", "paper", "metal"],
+    required: true,
+  },
+  weight: {
+    type: Number,
+  required: true,
+  },
 });
 
 const inventorySchema = new mongoose.Schema(
