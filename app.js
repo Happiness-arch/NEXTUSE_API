@@ -30,4 +30,8 @@ const { protect, authorize } = require("./src/middleware/authZ");
 const redeemRoutes = require("./src/routes/redeemRoute");
 app.use("/api/redeem", redeemRoutes);
 
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'NEXTUSE API running' });
+});
+
 module.exports = app;
