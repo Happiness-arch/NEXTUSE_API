@@ -115,22 +115,20 @@ exports.approvePickup = async (req, res) => {
     // Calculate points per item
     let totalPoints = 0;
     for (const item of pickup.items) {
-      const rate = pointsRate[item.wasteType] || 0;
-      totalPoints += item.weight * rate;
+      // const rate = pointsRate[item.wasteType] || 0;
+      // totalPoints += item.weight * rate;
+
+      //NEW LOGIC FROM CHATGPT
+      const product = await Product.findById(item.product);
+      totalPoints += item.quantity * product.ecoPoints;
     }
 
-    // Driver earns ₦100 per kg
-    const driverEarnings = pickup.totalWeight * 100;
 
     // Update household points
     const household = await User.findById(pickup.household);
     household.points += totalPoints;
     await household.save();
 
-    // Update driver earnings
-    const driver = await User.findById(pickup.driver);
-    driver.earnings += driverEarnings;
-    await driver.save();
 
     // Log points
     await PointsLog.create({
@@ -146,14 +144,9 @@ exports.approvePickup = async (req, res) => {
     res.json({
       message: "Pickup approved and rewards distributed",
       pointsAwarded: totalPoints,
-      driverEarnings: driverEarnings,
       household: {
         name: household.name,
         totalPoints: household.points,
-      },
-      driver: {
-        name: driver.name,
-        totalEarnings: driver.earnings,
       },
     });
   } catch (error) {

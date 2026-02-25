@@ -13,19 +13,33 @@ const pickupSchema = new mongoose.Schema(
     },
     items: [
       {
-        wasteType: {
-        type: String,
-        enum: ["plastic", "glass", "paper", "metal"],
-        },
-        weight: Number,
+        // wasteType: {
+        // type: String,
+        // enum: ["plastic", "glass", "paper", "metal"],
+        // },
+        // weight: Number,
+        product: { type: ObjectId, ref: "Product" },
+        quantity: Number
       },
     ],
-    totalWeight: Number,
-    status: {
-      type: String,
-      enum: ["pending", "assigned", "in_transit", "delivered", "completed"],
-      default: "pending",
-    },
+    // totalWeight: Number,
+    // status: {
+    //   type: String,
+    //   enum: ["pending", "assigned", "in_transit", "delivered", "completed"],
+    //   default: "pending",
+    // },
+
+
+    //NEW LOGIC
+    // totalEcoPoints = Σ(quantity × product.ecoPoints),
+//        scheduledDate: Date,
+//       timeSlot: String,
+//       status: {
+//       type: String,
+//       enum: ["draft", "requested", "confirmed", "completed"]
+// },
+
+
   },
   { timestamps: true }
 );
