@@ -1,14 +1,27 @@
 const mongoose = require("mongoose");
 
+// const itemSchema = new mongoose.Schema({
+//   wasteType: {
+//   type: String,
+//     enum: ["plastic", "glass", "paper", "metal"],
+//     required: true,
+//   },
+//   weight: {
+//     type: Number,
+//   required: true,
+//   },
+// });
+
+
 const itemSchema = new mongoose.Schema({
-  wasteType: {
-  type: String,
-    enum: ["plastic", "glass", "paper", "metal"],
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
     required: true,
   },
-  weight: {
+  quantity: {
     type: Number,
-  required: true,
+    required: true,
   },
 });
 
