@@ -186,7 +186,8 @@ exports.approvePickup = async (req, res) => {
 // HOUSEHOLD VIEWS THEIR PICKUP HISTORY
 exports.getMyPickups = async (req, res) => {
   try {
-    const pickups = await Pickup.find({ household: req.user.id })
+    const pickups = await Pickup.find({ driver: req.user.id })
+      .populate("household", "name email phone address")
       .populate("driver", "name email phone")
       .populate("items.product")
       .sort({ createdAt: -1 });
