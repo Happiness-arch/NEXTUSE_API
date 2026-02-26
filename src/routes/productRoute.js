@@ -1,10 +1,9 @@
 const express = require("express");
 const { protect } = require("../middleware/authZ");
-const { chat, getTips } = require("../controllers/ecobotCtrl");
+const { listProducts } = require("../controllers/productCtrl");
 
 const router = express.Router();
 
-router.post("/chat", protect, chat);
-router.get("/tips", protect, getTips);
+router.get("/", protect, listProducts);
 
 module.exports = router;

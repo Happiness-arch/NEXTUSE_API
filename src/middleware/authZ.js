@@ -1,30 +1,32 @@
 const jwt = require("jsonwebtoken");
 
 exports.protect = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const auth = req.headers.authorization;
 
-  if (!token)
+  if (!auth || !auth.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Not authorized" });
+  }
+
+  const token = auth.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Expect decoded to include: { id, role } (or { userId, role })
     req.user = decoded;
-    next();
+    return next();
   } catch (error) {
-    // console.error(error.name, error.message);
-    res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token" });
   }
-
-// console.log("Headers:", req.headers.authorization);
-// console.log("Decoded:", decoded);
-
 };
 
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role))
+    if (!req.user?.role) {
       return res.status(403).json({ message: "Forbidden" });
-
-    next();
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    return next();
   };
 };

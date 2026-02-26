@@ -7,6 +7,9 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, role, phone, address } = req.body;
 
+        // role is always household at registration
+    // admins and drivers are created manually or by existing admin
+
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "User already exists" });
@@ -17,7 +20,7 @@ exports.register = async (req, res) => {
       name,
       email,
       password, //i removed the hashing here because my userSchema model hook is already hashing the password before saving
-      role,
+      role: "household",
       phone,
       address,
     });
@@ -54,6 +57,13 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
+      user: {
+      id: user._id,
+      name: user.name,
+      role: user.role,
+      points: user.points,
+      wallet: user.wallet,
+  },
     });
   } catch (error) {
     console.error(error);

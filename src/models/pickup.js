@@ -1,50 +1,32 @@
-
 const mongoose = require("mongoose");
+
+const pickupItemSchema = new mongoose.Schema(
+  {
+    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    quantity: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
 
 const pickupSchema = new mongoose.Schema(
   {
-    household: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    household: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    driver: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+
+    items: { type: [pickupItemSchema], default: [] },
+
+    scheduledDate: { type: Date, required: true },
+    timeSlot: { type: String, required: true },
+
+    estimatedEcoPoints: { type: Number, default: 0 },
+
+    status: {
+      type: String,
+      enum: ["pending", "assigned", "delivered", "completed"],
+      default: "pending",
     },
-    driver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    items: [
-      {
-        // wasteType: {
-        // type: String,
-        // enum: ["plastic", "glass", "paper", "metal"],
-        // },
-        // weight: Number,
-        product: { type: ObjectId, ref: "Product" },
-        quantity: Number
-      },
-    ],
-    // totalWeight: Number,
-    // status: {
-    //   type: String,
-    //   enum: ["pending", "assigned", "in_transit", "delivered", "completed"],
-    //   default: "pending",
-    // },
-
-
-    //NEW LOGIC
-    // totalEcoPoints = Σ(quantity × product.ecoPoints),
-//        scheduledDate: Date,
-//       timeSlot: String,
-//       status: {
-//       type: String,
-//       enum: ["draft", "requested", "confirmed", "completed"]
-// },
-
-
   },
   { timestamps: true }
 );
 
 module.exports = mongoose.model("Pickup", pickupSchema);
-
-
-

@@ -1,15 +1,12 @@
-
-
 const express = require("express");
-const { protect, authorize } = require("../middleware/authZ");
-const { addWaste, getMyInventory } = require("../controllers/inventoryCtrl");
+const { protect } = require("../middleware/authZ");
+const { addWaste, getMyInventory, removeItem } = require("../controllers/inventoryCtrl");
 
 const router = express.Router();
 
-router.post("/add", protect, authorize("household"), addWaste);
-router.get("/me", protect, authorize("household"), getMyInventory);
+router.post("/add", protect, addWaste);
+router.get("/me", protect, getMyInventory);
+router.delete("/item/:productId", protect, removeItem);
+
 
 module.exports = router;
-
-
-

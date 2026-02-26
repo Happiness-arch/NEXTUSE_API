@@ -1,11 +1,13 @@
-const productSchema = new mongoose.Schema({
-  name: String, // "1L PET Bottle"
-  category: {
-    type: String,
-    enum: ["plastic", "glass", "paper", "metal"]
+const mongoose = require("mongoose");
+
+const productSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    category: { type: String, enum: ["plastic", "glass", "paper", "metal"], required: true },
+    ecoPoints: { type: Number, required: true },
+    image: { type: String },
   },
-  ecoPoints: Number, // per unit
-  image: String
-});
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Product", productSchema);
