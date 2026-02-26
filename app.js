@@ -1,8 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-const { protect, authorize } = require("./src/middleware/authZ");
-
 
 const ecobotRoutes = require("./src/routes/ecobotRoute");
 const authRoute = require("./src/routes/authRoute");
