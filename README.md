@@ -13,7 +13,9 @@
 | Database | MongoDB (Mongoose) |
 | Auth | JWT (jsonwebtoken) |
 | Password Hashing | bcryptjs |
-| CORS | cors |
+| AI Integration | Groq SDK (Llama 3.3 70B) |
+| Rate Limiting | express-rate-limit |
+| Deployment | Render |
 
 ---
 
@@ -23,28 +25,37 @@
 nextuse_backend/
 ├── src/
 │   ├── config/
-│   │   └── db.js                 # MongoDB connection
+│   │   └── db.js                     # MongoDB connection
 │   ├── controllers/
-│   │   ├── authCtrl.js           # Register, login, profile
-│   │   ├── inventoryCtrl.js      # Add waste, view inventory
-│   │   ├── pickupCtrl.js         # Full pickup lifecycle
-│   │   └── redeemCtrl.js         # Points redemption, wallet
+│   │   ├── authCtrl.js               # Register, login, profile, create-staff
+│   │   ├── inventoryCtrl.js          # Add, view, remove inventory items
+│   │   ├── pickupCtrl.js             # Full pickup lifecycle
+│   │   ├── productCtrl.js            # Products library
+│   │   ├── redeemCtrl.js             # Points redemption, wallet
+│   │   ├── pointsCtrl.js             # Points history
+│   │   └── ecobotCtrl.js             # AI EcoBot integration
 │   ├── middleware/
-│   │   └── authZ.js              # JWT protect + role authorize
+│   │   └── authZ.js                  # JWT protect + role authorize
 │   ├── models/
 │   │   ├── user.js
 │   │   ├── inventory.js
 │   │   ├── pickup.js
+│   │   ├── products.js
 │   │   └── pointsLog.js
-│   └── routes/
-│       ├── authRoute.js
-│       ├── inventoryRoute.js
-│       ├── pickupRoute.js
-│       └── redeemRoute.js
-├── app.js                        # Express app setup & route mounting
-├── server.js                     # Entry point
+│   ├── routes/
+│   │   ├── authRoute.js
+│   │   ├── inventoryRoute.js
+│   │   ├── pickupRoute.js
+│   │   ├── productRoute.js
+│   │   ├── redeemRoute.js
+│   │   ├── pointsRoute.js
+│   │   └── ecobotRoute.js
+│   └── seed/
+│       └── seedProducts.js           # Database seeder
+├── app.js                            # Express app setup & route mounting
+├── server.js                         # Entry point
 ├── package.json
-└── .env                          # Environment variables (never commit)
+└── .env                              # Environment variables (never commit)
 ```
 
 ---
@@ -57,9 +68,10 @@ Create a `.env` file in the project root:
 PORT=8000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_strong_secret_key
+GROQ_API_KEY=your_groq_api_key
 ```
 
-> ⚠️ Never commit `.env` to version control. It is already excluded in `.gitignore`.
+> Never commit `.env` to version control. Already excluded in `.gitignore`.
 
 ---
 
@@ -75,11 +87,26 @@ npm install
 
 # 3. Create .env file and add environment variables
 
-# 4. Start the server
-node server.js
+# 4. Seed the products database
+node src/seed/seedProducts.js
+
+# 5. Start development server
+npm run dev
 ```
 
 Server runs on `http://localhost:8000`
+
+---
+
+## Seeding the Database
+
+Run this once to populate the recyclables library:
+
+```bash
+node src/seed/seedProducts.js
+```
+
+This seeds 15 recyclable products across plastic, metal, paper, and glass categories.
 
 ---
 
@@ -96,10 +123,7 @@ CMD ["node", "server.js"]
 ```
 
 ```bash
-# Build image
 docker build -t nextuse-api .
-
-# Run container
 docker run -p 8000:8000 --env-file .env nextuse-api
 ```
 
@@ -108,10 +132,10 @@ docker run -p 8000:8000 --env-file .env nextuse-api
 ## Health Check
 
 ```
-GET /health
+GET /
 ```
 
-Returns `{ "status": "ok" }` — use this to verify the service is running after deployment.
+Returns `{ "status": "ok", "message": "NEXTUSE API running" }`
 
 ---
 
@@ -124,10 +148,14 @@ Returns `{ "status": "ok" }` — use this to verify the service is running after
 | GET | /api/auth/me | All roles |
 | PUT | /api/auth/update-profile | All roles |
 | GET | /api/auth/all-users | Admin only |
+| POST | /api/auth/create-staff | Admin only |
+| GET | /api/products | All roles |
 | POST | /api/inventory/add | Household only |
 | GET | /api/inventory/me | Household only |
+| DELETE | /api/inventory/item/:productId | Household only |
 | POST | /api/pickups | Household only |
 | GET | /api/pickups/my-pickups | Household only |
+| PUT | /api/pickups/:id/reschedule | Household only |
 | GET | /api/pickups/assigned | Driver only |
 | GET | /api/pickups/all | Admin only |
 | PUT | /api/pickups/:id/assign | Admin only |
@@ -135,18 +163,19 @@ Returns `{ "status": "ok" }` — use this to verify the service is running after
 | PUT | /api/pickups/:id/approve | Admin only |
 | POST | /api/redeem | Household only |
 | GET | /api/redeem/wallet | Household only |
-
-> Full API documentation with request/response examples is available separately.
+| GET | /api/points/history | Household only |
+| POST | /api/ecobot/chat | All roles |
+| GET | /api/ecobot/tips | All roles |
 
 ---
 
 ## Roles
 
-| Role | Description |
-|------|-------------|
-| `household` | Logs waste, requests pickups, earns and redeems points |
-| `driver` | Collects waste, updates actual weights, earns money per kg |
-| `admin` | Assigns drivers, approves pickups, views all data |
+| Role | How Created | Description |
+|------|-------------|-------------|
+| household | Self-registration via app | Logs waste, requests pickups, earns and redeems EcoPoints |
+| driver | Created by admin via /api/auth/create-staff | Collects waste, marks pickups delivered |
+| admin | Created by existing admin or manually in DB | Assigns drivers, approves pickups, views all data |
 
 ---
 
@@ -156,46 +185,55 @@ Returns `{ "status": "ok" }` — use this to verify the service is running after
 pending → assigned → delivered → completed
 ```
 
-1. Household requests pickup (minimum 5kg in inventory)
-2. Admin assigns a driver
-3. Driver collects waste, updates actual weights → marks delivered
-4. Admin approves → points awarded to household, earnings to driver
+1. Household logs items (minimum 5000 EcoPoints threshold)
+2. Household requests pickup with date and time slot
+3. Admin assigns a driver
+4. Driver collects waste and marks as delivered
+5. Admin approves → EcoPoints awarded → inventory cleared
 
 ---
 
-## Reward System
+## EcoPoints System
 
-| Waste Type | Points Per Kg |
-|------------|--------------|
-| plastic | 5 |
-| glass | 4 |
-| paper | 3 |
-| metal | 8 |
+| Category | Example Items |
+|----------|--------------|
+| plastic | PET Bottles, HDPE Bottles, Plastic Spoons |
+| metal | Metal Drink Cans, Metal Food Cans |
+| paper | Egg Cartons, Cardboard Boxes, Milk Cartons |
+| glass | Wine Bottles, Beer Bottles, Glass Jars |
 
-- Minimum **100 points** to redeem
-- **100 points = ₦500** wallet credit
-- Driver earns **₦100 per kg** collected
-
----
-
-## Security Notes
-
-- `JWT_SECRET` must be a strong random string (minimum 32 characters)
-- `MONGO_URI` should use a dedicated DB user with limited permissions
-- CORS is currently open — restrict to specific origins in production
-- All protected routes require a valid JWT token
-- Passwords are hashed with bcrypt before storage
+**Redemption minimums:**
+- Airtime: 1,000 EcoPoints
+- Data: 1,000 EcoPoints  
+- Electricity: 5,000 EcoPoints
 
 ---
 
-## Team
+## Security
 
-| Role | Responsibility |
-|------|---------------|
-| Backend | Node.js API (this repo) |
-| Mobile | Flutter app — consumes this API |
-| DevOps | Docker + Render deployment |
-| Data Science | AI integration + analytics |
-| Cybersecurity | Security review |
-| Product | Roadmap + requirements |
-| Design | UI/UX wireframes |
+- JWT authentication with 1-day token expiry
+- bcrypt password hashing (salt rounds: 10)
+- Role-based access control on all protected routes
+- Login rate limiting: 3 attempts per 5 minutes
+- General rate limiting: 100 requests per 15 minutes
+- Roles assigned server-side — clients cannot self-assign admin/driver
+
+---
+
+## AI Integration
+
+EcoBot is powered by Llama 3.3 70B via Groq infrastructure. It answers recycling questions, provides waste sorting guidance, and delivers eco-friendly tips tailored to Nigerian context.
+
+```
+POST /api/ecobot/chat
+{ "message": "Can I recycle a greasy pizza box?" }
+```
+
+---
+
+## Deployment
+
+- **Platform**: Render
+- **Live URL**: https://nextuse-api.onrender.com
+- **CI/CD**: Auto-deploys from GitHub main branch
+- **Database**: MongoDB Atlas
