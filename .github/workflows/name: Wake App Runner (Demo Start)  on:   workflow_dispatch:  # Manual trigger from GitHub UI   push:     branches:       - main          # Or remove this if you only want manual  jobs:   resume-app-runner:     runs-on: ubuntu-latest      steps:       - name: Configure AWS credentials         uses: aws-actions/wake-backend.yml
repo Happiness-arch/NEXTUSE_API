@@ -1,0 +1,42 @@
+name: Wake App Runner
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+  push:
+    branches:
+      - main          # Or remove this if you only want manual
+
+jobs:
+  resume-app-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Resume App Runner Service
+        run: |
+          echo "Resuming App Runner..."
+          aws apprunner resume-service \
+            --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+
+      - name: Wait until service is running
+        run: |
+          echo "Waiting for service to be RUNNING..."
+          for i in {1..20}; do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN }} \
+              --query 'Service.Status' --output text)
+            echo "Status: $STATUS"
+            if [ "$STATUS" = "RUNNING" ]; then
+              echo "✅ Service is live!"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "❌ Timed out waiting for service"
+          exit 1
