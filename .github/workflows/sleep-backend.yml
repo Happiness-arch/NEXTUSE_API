@@ -1,0 +1,23 @@
+name: Sleep App Runner (Demo End)
+
+on:
+  workflow_dispatch:  # Manual trigger only — you control when to sleep
+
+jobs:
+  pause-app-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Pause App Runner Service
+        run: |
+          echo "Pausing App Runner..."
+          aws apprunner pause-service \
+            --service-arn ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+          echo "✅ Service paused. No charges will accrue."
