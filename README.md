@@ -4,6 +4,15 @@
 
 ---
 
+## Core Features
+
+- Household recycling pickup requests
+- Inventory threshold tracking
+- Reward points system
+- AI recommendation integration
+- Driver assignment workflow
+- Cloud deployment support
+
 ## Tech Stack
 
 | Layer | Technology |
